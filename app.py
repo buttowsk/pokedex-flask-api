@@ -29,16 +29,18 @@ class Favorites(db.Model):
     __tablename__ = 'favorites'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(100))
+    pokemon_name = db.Column(db.String(100))
+    pokemon_id = db.Column(db.Integer)
 
     def create(self):
         db.session.add(self)
         db.session.commit()
         return self
 
-    def __int__(self, user_id, name):
+    def __int__(self, user_id, pokemon_name, pokemon_id):
         self.user_id = user_id
-        self.name = name
+        self.pokemon_name = pokemon_name
+        self.pokemon_id = pokemon_id
 
     def __repr__(self):
         return f"{self.id}"
@@ -73,14 +75,14 @@ class FavoritesSchema(Schema):
     class Meta(Schema.Meta):
         model = Favorites
         sqla_session = db.session
-        fields = ('id', 'user_id', 'name')
+        fields = ('id', 'user_id', 'pokemon_name', 'pokemon_id')
 
 
 class NewFavoriteSchema(Schema):
     class Meta(Schema.Meta):
         model = Favorites
         sqla_session = db.session
-        fields = ('id', 'user_id', 'name')
+        fields = ('id', 'user_id', 'pokemon_name', 'pokemon_id')
 
 
 class UserSchema(Schema):
@@ -134,6 +136,12 @@ def check_token():
     return jsonify('Token is valid!'), 200
 
 
+@app.route('/get-user-id', methods=['GET'])
+@jwt_required_route
+def get_user_id():
+    current_user = get_jwt_identity()
+    return jsonify(user_id=current_user), 200
+
 @app.route('/users/<int:user_id>', methods=['GET'])
 @jwt_required_route
 def get_user_by_id(user_id):
@@ -152,24 +160,36 @@ def get_user_favorites(user_id):
     return make_response(jsonify({"favorites": favorites}))
 
 
-@app.route('/users/<int:user_id>/favorites/<int:favorite_id>', methods=['DELETE'])
+@app.route('/users/<int:user_id>/favorites/<int:pokemon_id>', methods=['GET'])
 @jwt_required_route
-def delete_user_favorites(user_id, favorite_id):
+def get_user_favorites_by_pokemon_id(user_id, pokemon_id):
     get_user = Users.query.get_or_404(user_id)
-    get_favorite = Favorites.query.get_or_404(favorite_id)
+    get_favorite = Favorites.query.filter_by(user_id=user_id, pokemon_id=pokemon_id).first()
+    favorites_schema = FavoritesSchema()
+    favorite = favorites_schema.dump(get_favorite)
+    return make_response(jsonify({"favorite": favorite}))
+
+
+@app.route('/users/<int:user_id>/favorites/<int:pokemon_id>', methods=['DELETE'])
+@jwt_required_route
+def delete_user_favorites_by_pokemon_id(user_id, pokemon_id):
+    get_user = Users.query.get_or_404(user_id)
+    get_favorite = Favorites.query.filter_by(user_id=user_id, pokemon_id=pokemon_id).first()
     db.session.delete(get_favorite)
     db.session.commit()
-    return make_response("Pokemon removido dos favoritos!", 204)
+    return make_response(jsonify({"favorite": "Favorite deleted"}))
+
 
 
 @app.route('/users/<int:user_id>/favorites', methods=['POST'])
 @jwt_required_route
 def add_user_favorites(user_id):
     get_user = Users.query.get_or_404(user_id)
-    name = request.json.get('name', None)
-    if not name:
+    pokemon_name = request.json.get('pokemon_name', None)
+    pokemon_id = request.json.get('pokemon_id', None)
+    if not pokemon_name:
         return jsonify({"msg": "Missing name parameter"}), 400
-    new_favorite = Favorites(user_id=user_id, name=name)
+    new_favorite = Favorites(user_id=user_id, pokemon_name=pokemon_name, pokemon_id=pokemon_id)
     db.session.add(new_favorite)
     db.session.commit()
     new_favorite_schema = NewFavoriteSchema()
