@@ -49,7 +49,8 @@ class Favorites(db.Model):
 class Users(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
+    fullname = db.Column(db.String(100))
+    username = db.Column(db.String(100))
     email = db.Column(db.String(100))
     password = db.Column(db.String(100))
     favorites = db.relationship('Favorites', backref='user', lazy=True)
@@ -59,8 +60,9 @@ class Users(db.Model):
         db.session.commit()
         return self
 
-    def __int__(self, name, email, password):
-        self.name = name
+    def __int__(self, fullname, username, email, password):
+        self.fullname = fullname
+        self.username = username
         self.email = email
         self.password = password
 
@@ -75,6 +77,8 @@ class FavoritesSchema(Schema):
     class Meta(Schema.Meta):
         model = Favorites
         sqla_session = db.session
+        load_instance = True
+        include_relationships = True
         fields = ('id', 'user_id', 'pokemon_name', 'pokemon_id')
 
 
@@ -86,14 +90,15 @@ class NewFavoriteSchema(Schema):
 
 
 class UserSchema(Schema):
-    class Meta(Schema.Meta):
+    class Meta:
         model = Users
         sqla_session = db.session
         include_relationships = True
         load_instance = True
 
     id = fields.Int(dump_only=True)
-    name = fields.Str(required=True)
+    fullname = fields.Str(required=True)
+    username = fields.Str(required=True)
     email = fields.Str(required=True)
     password = fields.Str(required=True)
     favorites = fields.Nested('FavoritesSchema', many=True)
@@ -105,6 +110,36 @@ def get_all_users():
     user_schema = UserSchema(many=True)
     users = user_schema.dump(get_users)
     return make_response(jsonify({"users": users}))
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    username = request.json.get('username', None)
+    fullname = request.json.get('fullname', None)
+    email = request.json.get('email', None)
+    password = request.json.get('password', None)
+    if not fullname:
+        return jsonify({"msg": "Missing name parameter"}), 400
+    if not email:
+        return jsonify({"msg": "Missing email parameter"}), 400
+    if not password:
+        return jsonify({"msg": "Missing password parameter"}), 400
+
+    email_exists = Users.query.filter_by(email=email).first()
+    if email_exists:
+        return jsonify({"msg": "Email already exists"}), 400
+    username_exists = Users.query.filter_by(username=username).first()
+    if username_exists:
+        return jsonify({"msg": "Username already exists"}), 400
+
+    new_user = Users(username=username, fullname=fullname, email=email, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"msg": "User created successfully"}), 201
 
 
 @app.route('/login', methods=['POST'])
@@ -130,6 +165,12 @@ def login():
     return jsonify(access_token=access_token), 200
 
 
+@app.route('/logout', methods=['POST'])
+@jwt_required_route
+def logout():
+    return jsonify({"msg": "Successfully logged out"}), 200
+
+
 @app.route('/check-token', methods=['GET'])
 @jwt_required_route
 def check_token():
@@ -141,6 +182,15 @@ def check_token():
 def get_user_id():
     current_user = get_jwt_identity()
     return jsonify(user_id=current_user), 200
+
+
+@app.route('/get-name', methods=['GET'])
+@jwt_required_route
+def get_name():
+    current_user = get_jwt_identity()
+    user = Users.query.get_or_404(current_user)
+    return jsonify(name=user.username), 200
+
 
 @app.route('/users/<int:user_id>', methods=['GET'])
 @jwt_required_route
@@ -180,7 +230,6 @@ def delete_user_favorites_by_pokemon_id(user_id, pokemon_id):
     return make_response(jsonify({"favorite": "Favorite deleted"}))
 
 
-
 @app.route('/users/<int:user_id>/favorites', methods=['POST'])
 @jwt_required_route
 def add_user_favorites(user_id):
@@ -195,32 +244,6 @@ def add_user_favorites(user_id):
     new_favorite_schema = NewFavoriteSchema()
     favorite = new_favorite_schema.dump(new_favorite)
     return make_response(jsonify({"favorite": favorite}))
-
-
-@app.route('/register', methods=['POST'])
-def register():
-    if not request.is_json:
-        return jsonify({"msg": "Missing JSON in request"}), 400
-
-    name = request.json.get('name', None)
-    email = request.json.get('email', None)
-    password = request.json.get('password', None)
-    if not name:
-        return jsonify({"msg": "Missing name parameter"}), 400
-    if not email:
-        return jsonify({"msg": "Missing email parameter"}), 400
-    if not password:
-        return jsonify({"msg": "Missing password parameter"}), 400
-
-    user = Users.query.filter_by(email=email).first()
-    if user:
-        return jsonify({"msg": "Email already exists"}), 400
-
-    new_user = Users(name=name, email=email, password=password)
-    db.session.add(new_user)
-    db.session.commit()
-
-    return jsonify({"msg": "User created successfully"}), 201
 
 
 if __name__ == '__main__':
