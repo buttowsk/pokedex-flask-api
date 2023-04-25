@@ -13,4 +13,7 @@ class FavoritePokemonSchema(ma.SQLAlchemyAutoSchema):
     id = ma.Int(dump_only=True)
     user_id = ma.Int(required=True)
     pokemon_id = ma.Int(required=True)
-    pokemon_name = ma.Str(required=True)
+    name = ma.Str(required=True)
+    image = ma.Str(required=True)
+    types = ma.Str(required=True)
+
