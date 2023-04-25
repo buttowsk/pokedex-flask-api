@@ -104,3 +104,13 @@ def get_name():
     current_user = get_jwt_identity()
     user = Users.query.get_or_404(current_user)
     return jsonify(name=user.username), 200
+
+
+@bp.route('/delete-user', methods=['DELETE'])
+@jwt_required_route
+def delete_user():
+    current_user = get_jwt_identity()
+    user = Users.query.get_or_404(current_user)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"msg": "User deleted successfully"}), 200
