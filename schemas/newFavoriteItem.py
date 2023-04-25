@@ -14,6 +14,6 @@ class NewFavoriteItemSchema(ma.SQLAlchemyAutoSchema):
     image = ma.Str(required=True)
     cost = ma.Int(required=True)
     description = ma.Str(required=True)
-    held_by_pokemon = ma.Str(required=True)
+    held_by_pokemon = ma.Str(required=False)
     category = ma.Str(required=True)
 

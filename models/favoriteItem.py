@@ -10,7 +10,7 @@ class FavoriteItemModel(db.Model):
     description = db.Column(db.String(9999), nullable=False)
     cost = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(9999), nullable=False)
-    held_by_pokemon = db.Column(db.String(9999), nullable=False)
+    held_by_pokemon = db.Column(db.String(9999), nullable=True)
     category = db.Column(db.String(9999), nullable=False)
 
     def create(self):
