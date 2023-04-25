@@ -8,7 +8,7 @@ from utils import jwt_required_route
 bp = Blueprint('favorite-item-routes', __name__)
 
 
-@bp.route('/users/<int:user_id>/favorites/item', methods=['GET'])
+@bp.route('/users/<int:user_id>/favorites/items', methods=['GET'])
 @jwt_required_route
 def get_all_fav_items(user_id):
     get_favorite = FavoriteItem.query.filter_by(user_id=user_id).all()
@@ -38,13 +38,16 @@ def delete_fav_item_by_id(user_id, item_id):
 @bp.route('/users/<int:user_id>/favorites/item', methods=['POST'])
 @jwt_required_route
 def add_favorite_item(user_id):
-    item_name = request.json.get('item_name', None)
+    name = request.json.get('name', None)
     item_id = request.json.get('item_id', None)
-    if not item_name:
-        return jsonify({"msg": "Missing item_name parameter"}), 400
-    if not item_id:
-        return jsonify({"msg": "Missing item_id parameter"}), 400
-    new_favorite_item = FavoriteItem(item_name=item_name, item_id=item_id, user_id=user_id)
+    image = request.json.get('image', None)
+    cost = request.json.get('cost', None)
+    description = request.json.get('description', None)
+    category = request.json.get('category', None)
+    held_by_pokemon = request.json.get('held_by_pokemon', None)
+
+    new_favorite_item = FavoriteItem(name=name, item_id=item_id, image=image, cost=cost, description=description,
+                                     category=category, held_by_pokemon=held_by_pokemon, user_id=user_id)
     db.session.add(new_favorite_item)
     db.session.commit()
     new_favorite_schema = NewFavoriteItemSchema()
