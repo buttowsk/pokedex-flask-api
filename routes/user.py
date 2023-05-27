@@ -1,13 +1,13 @@
 import datetime
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, redirect
 from flask_jwt_extended import get_jwt_identity, create_access_token
 from models.users import UsersModel as Users
 from schemas.users import UserSchema
 from db import db
 from utils import jwt_required_route
 
-bp = Blueprint('user-routes', __name__)
 
+bp = Blueprint('user-routes', __name__)
 
 @bp.route('/users', methods=['GET'])
 def get_all_users():
@@ -23,11 +23,8 @@ def register():
         return jsonify({"msg": "Missing JSON in request"}), 400
 
     username = request.json.get('username', None)
-    fullname = request.json.get('fullname', None)
     email = request.json.get('email', None)
     password = request.json.get('password', None)
-    if not fullname:
-        return jsonify({"msg": "Missing name parameter"}), 400
     if not email:
         return jsonify({"msg": "Missing email parameter"}), 400
     if not password:
@@ -40,7 +37,7 @@ def register():
     if username_exists:
         return jsonify({"msg": "Username already exists"}), 400
 
-    new_user = Users(username=username, fullname=fullname, email=email, password=password)
+    new_user = Users(username=username, email=email, password=password)
     db.session.add(new_user)
     db.session.commit()
 
@@ -68,7 +65,6 @@ def login():
 
     access_token = create_access_token(identity=user.id, expires_delta=datetime.timedelta(hours=1))
     return jsonify(access_token=access_token), 200
-
 
 @bp.route('/logout', methods=['POST'])
 @jwt_required_route

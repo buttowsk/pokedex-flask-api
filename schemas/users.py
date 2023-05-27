@@ -13,7 +13,6 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
 
     id = ma.Int(dump_only=True)
-    fullname = ma.Str(required=True)
     username = ma.Str(required=True)
     email = ma.Str(required=True)
     password = ma.Str(required=True)
