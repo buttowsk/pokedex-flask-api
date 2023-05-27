@@ -11,7 +11,7 @@ from routes.googleLogin import google_auth_bp, bp as google_routes
 import logging
 
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 app.secret_key = os.getenv("SECRET_KEY")
 
 CORS(app)
