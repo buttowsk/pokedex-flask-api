@@ -51,7 +51,7 @@ def authorized():
     access_token = create_access_token(identity=user.id)
 
     # Redirecionar o usuário para o front-end com o token de acesso
-    frontend_url = "http://localhost:5173/pokedex-react/?token=" + access_token
+    frontend_url = "https://buttowsk.github.io/pokedex-react/?token=" + access_token
     return redirect(frontend_url)
 
 
